@@ -1,0 +1,35 @@
+[1.518s] Invoking command in '/home/orin_nano/INC493/src/wall_following': PYTHONPATH=/home/orin_nano/INC493/src/wall_following/build/wall_following/prefix_override:/home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base build/wall_following build --build-base /home/orin_nano/INC493/src/wall_following/build/wall_following/build install --record /home/orin_nano/INC493/src/wall_following/build/wall_following/install.log --install-scripts $base/lib/wall_following --single-version-externally-managed install_data
+[2.013s] running egg_info
+[2.014s] writing build/wall_following/wall_following.egg-info/PKG-INFO
+[2.015s] writing dependency_links to build/wall_following/wall_following.egg-info/dependency_links.txt
+[2.015s] writing entry points to build/wall_following/wall_following.egg-info/entry_points.txt
+[2.016s] writing requirements to build/wall_following/wall_following.egg-info/requires.txt
+[2.016s] writing top-level names to build/wall_following/wall_following.egg-info/top_level.txt
+[2.079s] reading manifest file 'build/wall_following/wall_following.egg-info/SOURCES.txt'
+[2.081s] writing manifest file 'build/wall_following/wall_following.egg-info/SOURCES.txt'
+[2.081s] running build
+[2.081s] running build_py
+[2.081s] copying wall_following/lidar_visualizer.py -> /home/orin_nano/INC493/src/wall_following/build/wall_following/build/lib/wall_following
+[2.082s] copying wall_following/wall_following_pid.py -> /home/orin_nano/INC493/src/wall_following/build/wall_following/build/lib/wall_following
+[2.082s] running install
+[2.084s] running install_lib
+[2.086s] creating /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following
+[2.087s] copying /home/orin_nano/INC493/src/wall_following/build/wall_following/build/lib/wall_following/__init__.py -> /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following
+[2.087s] copying /home/orin_nano/INC493/src/wall_following/build/wall_following/build/lib/wall_following/lidar_visualizer.py -> /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following
+[2.087s] copying /home/orin_nano/INC493/src/wall_following/build/wall_following/build/lib/wall_following/wall_following_pid.py -> /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following
+[2.088s] byte-compiling /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following/__init__.py to __init__.cpython-38.pyc
+[2.090s] byte-compiling /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following/lidar_visualizer.py to lidar_visualizer.cpython-38.pyc
+[2.091s] byte-compiling /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following/wall_following_pid.py to wall_following_pid.cpython-38.pyc
+[2.093s] running install_data
+[2.093s] creating /home/orin_nano/INC493/src/wall_following/install/wall_following/share/ament_index
+[2.093s] creating /home/orin_nano/INC493/src/wall_following/install/wall_following/share/ament_index/resource_index
+[2.093s] creating /home/orin_nano/INC493/src/wall_following/install/wall_following/share/ament_index/resource_index/packages
+[2.093s] copying resource/wall_following -> /home/orin_nano/INC493/src/wall_following/install/wall_following/share/ament_index/resource_index/packages
+[2.093s] copying package.xml -> /home/orin_nano/INC493/src/wall_following/install/wall_following/share/wall_following
+[2.094s] running install_egg_info
+[2.098s] Copying build/wall_following/wall_following.egg-info to /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages/wall_following-0.0.0-py3.8.egg-info
+[2.100s] running install_scripts
+[2.134s] Installing lidar_visualizer script to /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/wall_following
+[2.134s] Installing wall_following_pid script to /home/orin_nano/INC493/src/wall_following/install/wall_following/lib/wall_following
+[2.135s] writing list of installed files to '/home/orin_nano/INC493/src/wall_following/build/wall_following/install.log'
+[2.194s] Invoked command in '/home/orin_nano/INC493/src/wall_following' returned '0': PYTHONPATH=/home/orin_nano/INC493/src/wall_following/build/wall_following/prefix_override:/home/orin_nano/INC493/src/wall_following/install/wall_following/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base build/wall_following build --build-base /home/orin_nano/INC493/src/wall_following/build/wall_following/build install --record /home/orin_nano/INC493/src/wall_following/build/wall_following/install.log --install-scripts $base/lib/wall_following --single-version-externally-managed install_data

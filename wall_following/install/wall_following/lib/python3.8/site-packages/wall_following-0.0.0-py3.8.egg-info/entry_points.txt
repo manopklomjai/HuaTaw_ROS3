@@ -1,0 +1,4 @@
+[console_scripts]
+lidar_visualizer = wall_following.lidar_visualizer:main
+wall_following_pid = wall_following.wall_following_pid:main
+
