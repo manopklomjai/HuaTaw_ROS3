@@ -1,0 +1,152 @@
+cat <<EOF > ~/ros2_ws/src/joy_to_vesc_auto.py 
+import rclpy 
+from rclpy.node import Node 
+from sensor_msgs.msg import Joy, LaserScan 
+from std_msgs.msg import Float64 
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy 
+import numpy as np 
+
+class PrecisionSafetyFollower(Node): 
+    def __init__(self): 
+        super().__init__('precision_safety_follower') 
+        
+        qos_profile = QoSProfile( 
+            reliability=ReliabilityPolicy.BEST_EFFORT, 
+            history=HistoryPolicy.KEEP_LAST, 
+            depth=10 
+        ) 
+
+        self.motor_pub = self.create_publisher(Float64, '/commands/motor/duty_cycle', 10) 
+        self.servo_pub = self.create_publisher(Float64, '/commands/servo/position', 10) 
+        self.scan_sub = self.create_subscription(LaserScan, 'scan', self.scan_callback, qos_profile) 
+        self.joy_sub = self.create_subscription(Joy, 'joy', self.joy_callback, 10) 
+        
+        self.timer = self.create_timer(0.05, self.timer_callback) 
+
+        # --- Speed Settings --- 
+        self.normal_speed = 0.05    
+        self.slow_speed = 0.035    
+        self.reverse_speed = -0.045 
+        
+        # --- Recovery Sequence Ticks ---
+        self.reverse_ticks = 10       # จังหวะที่ 1: ถอยตรง (0.5 วินาที)
+        self.wait_ticks = 12          # จังหวะที่ 2-3: หยุดนิ่งและหักล้อรอ (0.6 วินาที)
+        self.current_rev_tick = 0 
+        self.current_wait_tick = 0
+        self.chosen_side = 0.5        # เก็บค่าทิศทางที่จะหักหลบ
+        
+        # --- PID Parameters (ปรับให้เลี้ยวไวขึ้น) --- 
+        self.kp = 0.85                # เพิ่มจาก 0.55 ให้เลี้ยวคมขึ้น
+        self.kd = 1.10                
+        self.prev_error = 0.0 
+        self.smoothed_error = 0.0     
+        self.alpha = 0.45             # เพิ่มจาก 0.25 เพื่อลดความหน่วง (Response ไวขึ้น)
+        self.error_deadband = 0.02    # ลด Deadband ลงเพื่อให้ละเอียดขึ้น
+        
+        # --- Avoidance Config --- 
+        self.obs_limit = 0.75        
+        self.stop_limit = 0.32        # ระยะที่จะเริ่มกระบวนการถอย
+        self.max_nudge = 1.4          
+        
+        self.dist_left = 1.0 
+        self.dist_right = 1.0 
+        self.dist_front_narrow = 1.0 
+        self.deadman_active = False 
+
+    def scan_callback(self, msg): 
+        ranges = np.array(msg.ranges) 
+        ranges[np.isinf(ranges) | (ranges < 0.05)] = 5.0 
+        num_points = len(ranges) 
+
+        # Front Narrow (มุมแคบ 12 องศา)
+        n_idx = int(num_points * 12.0 / 360.0)
+        self.dist_front_narrow = np.min(np.concatenate((ranges[:n_idx], ranges[-n_idx:])))
+
+        # Side View (80-100 องศา)
+        l_start, l_end = int(num_points * 0.22), int(num_points * 0.28) 
+        r_start, r_end = int(num_points * 0.72), int(num_points * 0.78) 
+        self.dist_left = np.median(ranges[l_start:l_end]) 
+        self.dist_right = np.median(ranges[r_start:r_end]) 
+
+    def joy_callback(self, msg): 
+        self.deadman_active = (msg.buttons[4] == 1) 
+
+    def timer_callback(self): 
+        m_cmd = 0.0 
+        s_cmd = 0.5  
+        
+        if self.deadman_active: 
+            # [1] กระบวนการถอยหลัง (ถอยตรงๆ)
+            if self.current_rev_tick > 0:
+                m_cmd = self.reverse_speed
+                s_cmd = 0.5 
+                self.current_rev_tick -= 1
+                state = "RECOVERING: REV"
+                if self.current_rev_tick == 0:
+                    self.current_wait_tick = self.wait_ticks
+                    # ตัดสินใจเลือกข้างที่จะเลี้ยวค้างไว้ตอนหยุด
+                    self.chosen_side = 0.85 if self.dist_left > self.dist_right else 0.15
+
+            # [2] กระบวนการหยุดนิ่งและหักล้อค้างรอ
+            elif self.current_wait_tick > 0:
+                m_cmd = 0.0 
+                s_cmd = self.chosen_side # หักล้อค้างไว้ทางที่ว่าง
+                self.current_wait_tick -= 1
+                state = "THINKING: STEER"
+                self.prev_error = 0.0
+                self.smoothed_error = 0.0
+
+            # [3] ตรวจพบทางตัน -> เริ่มขั้นตอนที่ 1
+            elif self.dist_front_narrow < self.stop_limit: 
+                self.current_rev_tick = self.reverse_ticks
+                m_cmd = 0.0 
+                state = "DETECTION: STOP"
+                
+            # [4] การขับขี่ปกติ
+            else: 
+                raw_error = self.dist_right - self.dist_left 
+                if abs(raw_error) < self.error_deadband:
+                    raw_error = 0.0
+                
+                # เพิ่มแรงหลบเมื่อใกล้สิ่งกีดขวาง
+                if self.dist_front_narrow < self.obs_limit: 
+                    state = "DRIVE: AVOID" 
+                    m_cmd = self.slow_speed 
+                    weight = np.clip((self.obs_limit - self.dist_front_narrow) / self.obs_limit, 0.0, 1.0)
+                    nudge = weight * self.max_nudge
+                    raw_error += nudge if self.dist_left > self.dist_right else -nudge
+                else: 
+                    state = "DRIVE: NORMAL" 
+                    m_cmd = self.normal_speed 
+                
+                # PID Filtered
+                self.smoothed_error = (self.alpha * raw_error) + ((1.0 - self.alpha) * self.smoothed_error)
+                diff = self.smoothed_error - self.prev_error 
+                output = (self.kp * self.smoothed_error) + (self.kd * diff) 
+                
+                s_cmd = 0.5 + output 
+                s_cmd = np.clip(s_cmd, 0.13, 0.87) 
+                self.prev_error = self.smoothed_error 
+        else: 
+            state = "IDLE (LB)" 
+            self.prev_error = self.smoothed_error = 0.0
+            self.current_rev_tick = self.current_wait_tick = 0
+
+        self.motor_pub.publish(Float64(data=m_cmd)) 
+        self.servo_pub.publish(Float64(data=s_cmd)) 
+        
+        print(f"[{state:<15}] L:{self.dist_left:.2f} R:{self.dist_right:.2f} F:{self.dist_front_narrow:.2f} | Steer:{s_cmd:.2f}", end='\r') 
+
+def main(args=None): 
+    rclpy.init(args=args) 
+    node = PrecisionSafetyFollower() 
+    try: 
+        rclpy.spin(node) 
+    except KeyboardInterrupt: 
+        pass 
+    node.destroy_node() 
+    rclpy.shutdown() 
+
+if __name__ == '__main__': 
+    main() 
+EOF
